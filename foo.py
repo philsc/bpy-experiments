@@ -16,8 +16,6 @@ ROBOT_DIR = os.path.dirname(
             inspect.getfile(
                 inspect.currentframe()))))
 
-DIST_ELEVATOR_TO_BASE = 0.33682
-
 
 class RobotPart(object):
 
@@ -28,36 +26,49 @@ class RobotPart(object):
                             axis_up=axis_up,
                             axis_forward=axis_forward)
     bpy.context.selected_objects[0].name = label
-    self.bpy_obj = bpy.data.objects[label]
-    self.label = os.path.splitext(filename)
-
-  def set_default_rotation(self, x, y, z):
-    pass
+    self.label = label
+    self.bpy_obj = bpy.data.objects[self.label]
 
 
 class DriveBase(RobotPart):
 
+  BOTTOM_PLANE_Z = 0.02619
+
   def __init__(self, label):
     super().__init__(ROBOT_PARTS[3], label, axis_up='Y', axis_forward='Z')
+
+  def get_reference_point(self):
+    point = self.bpy_obj.location.copy()
+    point[2] += self.BOTTOM_PLANE_Z
+    return point
 
 
 class Elevator(RobotPart):
 
-  def __init__(self, distance_at_zero_height, label, mirrored=False):
+  BOTTOM_PLANE_Z = 0.0
+  DIST_ELEVATOR_TO_BASE = 0.33682
+
+  def __init__(self, label, parent, mirrored=False):
     super().__init__(ROBOT_PARTS[2], label, axis_up='Y', axis_forward='Z')
-    self.distance_at_zero_height = distance_at_zero_height
+    self.parent = parent
     self.height = 0
     self.mirrored = mirrored
 
   def set_height(self, height):
     self.height = height
+    self.bpy_obj.location = self.parent.get_reference_point()
+    self.bpy_obj.location[2] += (self.DIST_ELEVATOR_TO_BASE - 
+        self.BOTTOM_PLANE_Z)
+    return self
 
 
 def main():
   drive_base = DriveBase('drive_base')
-  elevator_left = Elevator(DIST_ELEVATOR_TO_BASE, 'elevator_left', 
-      mirrored=False)
-  elevator_right = Elevator(DIST_ELEVATOR_TO_BASE, 'elevator_right', 
-      mirrored=True)
+  elevator_left = Elevator('elevator_left', drive_base, mirrored=False)
+  elevator_right = Elevator('elevator_right', drive_base, mirrored=True)
+
+  elevator_left.set_height(0.3)
+
+  print('foo=%s' % str(drive_base.get_reference_point()))
 
 main()
