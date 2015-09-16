@@ -3,11 +3,6 @@ import math
 import inspect
 import os
 
-NUM_CUBES = 20
-DISTANCE = 8
-
-cubes = []
-
 ROBOT_PARTS = [
     '971-15-A-3200_Fridge.STL',
     '971-15-A-4800_Arm Assembly.STL',
@@ -15,45 +10,42 @@ ROBOT_PARTS = [
     '971-15-A-1100_DrivebaseStructure.STL',
 ]
 
-ROBOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))
+ROBOT_DIR = os.path.dirname(
+    os.path.dirname(
+        os.path.abspath(
+            inspect.getfile(
+                inspect.currentframe()))))
 
 
-for part in ROBOT_PARTS:
-    bpy.ops.import_mesh.stl(filepath=ROBOT_DIR + '/' + part, files=[{"name":part}], \
-        directory=ROBOT_DIR)
+class RobotPart(object):
 
-raise("foo.py")
+  def __init__(self, filename, label):
+    bpy.ops.import_mesh.stl(filepath=ROBOT_DIR + '/' + filename,
+                            files=[{"name": filename}],
+                            directory=ROBOT_DIR)
+    self.bpy_obj = None
+    self.label = label
 
-'''
-for i in range(0, NUM_CUBES):
-    angle = i * 2 * math.pi / NUM_CUBES
-    x = math.sin(angle) * DISTANCE
-    y = math.cos(angle) * DISTANCE
 
-    bpy.ops.mesh.primitive_cube_add(radius=1, location=(x, y, 0), \
-            rotation=(0, 0, 0))
+class DriveBase(RobotPart):
 
-    cubes.append(bpy.context.active_object)
-    cubes[-1].keyframe_insert(data_path='rotation_euler', frame=0)
+  def __init__(self):
+    super().__init__(ROBOT_PARTS[3], 'drive_base')
 
-    i += 1
 
-scn = bpy.context.scene
+class Elevator(RobotPart):
 
-for i in range(0, 50):
-    for cube in cubes:
-        cube.select = True
+  def __init__(self, distance_at_zero_height):
+    super().__init__(ROBOT_PARTS[2], 'elevator')
+    self.distance_at_zero_height = distance_at_zero_height
+    self.height = 0
 
-        cube.rotation_euler[0] += math.pi / 4
-        cube.convert_space(from_space='LOCAL', to_space='WORLD')
+  def set_height(self, height):
+    self.height = height
 
-        cube.keyframe_insert(data_path='rotation_euler', frame=10 * (i + 1))
 
-        cube.select = False
+def main():
+  drive_base = DriveBase()
+  elevator = Elevator(0.33682)
 
-# Move the camera further away
-camera = bpy.data.objects['Camera']
-camera.select = True
-camera.location = (DISTANCE * 4, - DISTANCE * 4, DISTANCE * 3)
-camera.select = False
-'''
+main()
