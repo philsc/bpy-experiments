@@ -19,7 +19,7 @@ ROBOT_DIR = os.path.dirname(
 
 class RobotPart(object):
 
-  def __init__(self, filename, label, axis_up = 'Z', axis_forward = 'Y'):
+  def __init__(self, filename, label, axis_up = 'Z', axis_forward = 'Y', mirror_x = False, mirror_y = False, mirror_z = False):
     if not label in bpy.data.objects:
       bpy.ops.import_mesh.stl(filepath=ROBOT_DIR + '/' + filename,
                               files=[{"name": filename}],
@@ -27,6 +27,9 @@ class RobotPart(object):
                               axis_up=axis_up,
                               axis_forward=axis_forward)
       bpy.context.selected_objects[0].name = label
+
+      if mirror_x or mirror_y or mirror_z:
+        bpy.ops.transform.mirror(constraint_axis = (mirror_x, mirror_y, mirror_z))
     self.label = label
     self.bpy_obj = bpy.data.objects[self.label]
 
@@ -58,10 +61,10 @@ class Elevator(RobotPart):
   # TODO(phil): Figure out what this number is.
   # This is the distance from the center of the drive base to the center of
   # the elevator guides on the sides of the robot.
-  DIST_TO_GUIDE = 0.4
+  DIST_TO_GUIDE = 0.48
 
   def __init__(self, label, parent, mirrored=False):
-    super().__init__(ROBOT_PARTS[2], label, axis_up='Y', axis_forward='Z')
+    super().__init__(ROBOT_PARTS[2], label, axis_up='Y', axis_forward='Z', mirror_x=mirrored)
     self.parent = parent
     self.height = 0
     self.mirrored = mirrored
@@ -81,8 +84,8 @@ class Elevator(RobotPart):
 
 def main():
   drive_base = DriveBase('drive_base')
-  elevator_left = Elevator('elevator_left', drive_base, mirrored=False)
-  elevator_right = Elevator('elevator_right', drive_base, mirrored=True)
+  elevator_left = Elevator('elevator_left', drive_base, mirrored=True)
+  elevator_right = Elevator('elevator_right', drive_base, mirrored=False)
 
   elevator_left.set_height(0.0)
   elevator_right.set_height(0.3)
