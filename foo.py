@@ -20,12 +20,13 @@ ROBOT_DIR = os.path.dirname(
 class RobotPart(object):
 
   def __init__(self, filename, label, axis_up = 'Z', axis_forward = 'Y'):
-    bpy.ops.import_mesh.stl(filepath=ROBOT_DIR + '/' + filename,
-                            files=[{"name": filename}],
-                            directory=ROBOT_DIR,
-                            axis_up=axis_up,
-                            axis_forward=axis_forward)
-    bpy.context.selected_objects[0].name = label
+    if not label in bpy.data.objects:
+      bpy.ops.import_mesh.stl(filepath=ROBOT_DIR + '/' + filename,
+                              files=[{"name": filename}],
+                              directory=ROBOT_DIR,
+                              axis_up=axis_up,
+                              axis_forward=axis_forward)
+      bpy.context.selected_objects[0].name = label
     self.label = label
     self.bpy_obj = bpy.data.objects[self.label]
 
@@ -57,9 +58,13 @@ class Elevator(RobotPart):
   def set_height(self, height):
     self.height = height
     self.bpy_obj.location = self.parent.get_reference_point()
-    self.bpy_obj.location[2] += (self.DIST_ELEVATOR_TO_BASE - 
-        self.BOTTOM_PLANE_Z)
+    self.bpy_obj.location[2] += (self.DIST_ELEVATOR_TO_BASE -
+        self.BOTTOM_PLANE_Z + height)
     return self
+
+  def get_reference_point(self):
+     point = self.bpy_obj.location.copy()
+     return point
 
 
 def main():
@@ -67,8 +72,10 @@ def main():
   elevator_left = Elevator('elevator_left', drive_base, mirrored=False)
   elevator_right = Elevator('elevator_right', drive_base, mirrored=True)
 
-  elevator_left.set_height(0.3)
+  elevator_left.set_height(0.0)
+  elevator_right.set_height(0.3)
 
   print('foo=%s' % str(drive_base.get_reference_point()))
+  print('foo=%s' % str(elevator_left.get_reference_point()))
 
 main()
