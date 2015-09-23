@@ -1,4 +1,5 @@
 import bpy
+import mathutils
 import math
 import inspect
 import os
@@ -15,6 +16,33 @@ ROBOT_DIR = os.path.dirname(
         os.path.abspath(
             inspect.getfile(
                 inspect.currentframe()))))
+
+
+def find_circle_center(p1, p2, p3):
+  normal_12 = p2 - p1
+  normal_13 = p3 - p1
+  mid_12 = (p1 + p2) / 2
+  mid_13 = (p1 + p3) / 2
+  center_axis = mathutils.geometry.intersect_plane_plane(mid_12, normal_12,
+      mid_13, normal_13)
+
+  points_str = map(str, (p1, p2, p3))
+
+  if not center_axis:
+    raise Exception('Could not find center axis of %s, %s, %s' % points_str)
+
+  center_axis_p1 = center_axis[0]
+  center_axis_p2 = center_axis[0] + center_axis[1]
+
+  circle_normal = normal_12.cross(normal_13)
+
+  center_point = mathutils.geometry.intersect_line_plane(center_axis_p1,
+      center_axis_p2, p1, circle_normal)
+
+  if not center_point:
+    raise Exception('Could not find center point of %s, %s, %s' % points_str)
+
+  return center_point
 
 
 class RobotPart(object):
@@ -63,11 +91,19 @@ class Elevator(RobotPart):
   # the elevator guides on the sides of the robot.
   DIST_TO_GUIDE = 0.48
 
+  CIRCLE_POINTS = [
+      mathutils.Vector((-0.04754, 0.14925, 0.07720)),
+      mathutils.Vector((-0.04754, 0.12102, 0.11049)),
+      mathutils.Vector((-0.04754, 0.12122, -0.00817)),
+  ]
+  OFF_CIRCLE_POINT = mathutils.Vector((-0.03942, 0.15211, 0.03365))
+
   def __init__(self, label, parent, mirrored=False):
     super().__init__(ROBOT_PARTS[2], label, axis_up='Y', axis_forward='Z', mirror_x=mirrored)
     self.parent = parent
     self.height = 0
     self.mirrored = mirrored
+    self.local_reference = find_circle_center(*self.CIRCLE_POINTS)
 
   def set_height(self, height):
     self.height = height
@@ -78,7 +114,7 @@ class Elevator(RobotPart):
     return self
 
   def get_reference_point(self):
-     point = self.bpy_obj.location.copy()
+     point = self.bpy_obj.location.copy() + self.local_reference
      return point
 
 
